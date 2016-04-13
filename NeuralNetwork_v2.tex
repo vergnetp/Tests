@@ -1,0 +1,243 @@
+\documentclass[]{article}
+
+\usepackage{amsmath}
+\usepackage[margin=1.5in]{geometry}
+\usepackage{hyperref}
+
+%opening
+\title{Neural Networks}
+\author{Philippe Vergnet}
+
+\begin{document}
+
+\allowdisplaybreaks
+
+
+\maketitle
+
+\begin{abstract}
+This paper presents Neural Networks in their matricial form. It shows how to compute the gradient of a cost function, provided this cost follows a specific functional form.
+\end{abstract}
+
+\section{Pass Forward}
+
+Let $X$ be the $m$ x $h_0$ input matrix.\\
+Let $Y$ be the $m$ x $h_L$ target matrix.\\
+\\
+We want a model that will approximate $Y$ based on $X$.\\
+\\
+In regular linear regression, the predictions that are meant to be close to $Y$ are given by  $XW_1'+B_1$ ($B_1$ being the biaises).\\
+$W_1$ and $B_1$ can be optimized easily and the solution has an analytic form ($W_1=(X'X)^{-1}X'Y$).\\
+\\
+The drawback is that linear regressions can only emulate linear relationship ($f(x)=ax+b$). It could not replicate more complex relationships like "{\it if day is Monday or Friday then 0.8 * stock else 0.5 * stock}" or even a simple $x^2$.\\
+\\
+A possibility would be to compound the weights, such as to have $L>1$ of them.\\
+We would achieve it by defining the following:\\
+\\
+For $l \in [1;L]$:\\
+\\
+\begin{align*}
+Z_l=&Z_{l-1}W_{l}'+B_{l}
+\end{align*}
+\\
+Where:\\
+\\
+$W_l$: a $h_l$ x $h_{l-1}$ matrix, is the weight matrix for layer $l$\\
+$B_l$: a $h_l$ vector, is the biais vector for layer $l$\\
+$Z_0$ is $X$\\
+$Z_L$ is the prediction matrix.\\
+\\
+NB. We will speak of hidden layer when $l<L$\\
+\\
+This is already more powerful as a layer can "meta-learn" from what has been learned by the previous layer.\\
+A bit like Einstein managed to achieve great discoveries thanks to Newton who previously discovered the law of Gravity and Descartes who detailed how to solve polynomial equations.\\
+\\
+However, it would require a large number of hidden layers to fit the most complex functions, without guarantee of even being close enough.\\
+After all, those layers are all learning in a similar way, linearly.\\
+If Newton were to learn from Newton's discoveries, he would certainly achieve great things, but somehow be limited. Discoveries would be far greater if a different mind -like Einstein's- would come into play.\\
+\\
+So, in the light of this, we want to add more value in the training of each layer, and especially break the boring linearity.\\
+That's why we will multiply the results of each layer by some non linear function $s$ such as for $l \in [1;L]$:\\
+
+\begin{align}
+Z_l=&A_{l-1}W_{l}'+B_{l} \label{eq:fwdZ} \\ 
+A_l=&s(Z_{l}) \label{eq:fwdA}
+\end{align}
+\\
+Note that $A_L$ is now the output of the network (the predictions).\\
+Note also that $A_0$ is now $X$.\\
+Applying those relationships iteratively until $L$ is called a "pass forward".\\
+One last note: for the hidden layers, $h_l$ is the number of "neurons" in the layer.\\
+
+\section{Transfer Function}
+
+$s$ is called the transfer function (or activation function).\\
+It needs to be univariate (take and return one real number) and at least once differentiable.\\
+Note that it is applied elementwise on $Z_l$.\\
+It's main purpose is usually to introduce some non linearity and thus enable the network to emulate complex functions.\\
+It could be sinusoid ($sin(x)$), gaussian ($\exp(-x^2)$) etc.\\
+The most often used are the Sigmoid (a.k.a Logistic) function ($\dfrac{1}{1+\exp(-x)}$) and the Hyperbolic Tangent ($tanh(x)$).\\
+They are great because they have a linear part (around zero) and nonlinear parts (when the input is either rather positively or negatively big).\\
+Because they are bounded ($[0;1$ for the Sigmoid, $[-1;1]$ for the $tanh$), they work well with classification problems.\\
+\\
+On can use different transfer functions for different layers and really $\eqref{eq:fwdA}$ should be $A_l=s_l(Z_{l})$.\\
+This enable to leverage on different ways of learning (combining different minds).\\
+In this paper we omit the indexing of $s$ for notation simplicity.\\
+\\
+It has been \href{http://www.sciencedirect.com/science/article/pii/0893608089900208}{mathematicaly} shown that a neural networks can approximate as closely as needed any continuous function (provided there is enough layers and/or neurons).\\
+
+
+
+\section{Cost}
+
+To assess the accuracy of the network, we need a function that assess how far the predictions are from the actual target values hold in the $Y$ matrix.\\
+\\
+The most common distance measure is the Euclidean (or L2) norm:\\
+\begin{align*}
+Cost= \sqrt{ \sum_{s=1}^{m}\sum_{c_L=1}^{h_L}(A_L[s,c_L]-Y[s,c_L])^2 }
+\end{align*}
+
+Actually, to avoid struggling with the square root in the gradient calculation, we are better off removing it in favor of a sample averaging:\\ 
+
+\begin{align*}
+Cost= \dfrac{1}{m}  \sum_{s=1}^{m}\sum_{c_L=1}^{h_L}(A_L[s,c_L]-Y[s,c_L])^2 
+\end{align*}
+
+This has the merit of looking like the Mean Squared Errors, well known in statisctics.\\
+\\
+NB. For neural network, we usually divide this cost by 2 as a convenient way to simplify some calculations of the gradient.\\
+\\
+This objective function has the benefit of working with any numeric outputs.\\
+In the case where outputs only take value in 0 and one (binary), another cost function might be preferred, the logistic cost:\\
+
+\begin{align*}
+Cost=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}\left[ \log(1-A_L[s,c_L])*(1-Y[s,c_L])-\log(A_L[s,c_L])*(Y[s,c_L])\right]
+\end{align*}
+
+If $Y[s,j]$ is 0, then the second term disappear and the cost is minimum (close to zero) if $A_L[s,j]$ is close to zero and goes to plus infinity if it instead is far off, close to one.\\
+The same reasoning applies when $Y[s,j]$ is one.\\
+So this function represents a good distance (always positive, close to zero when close, bigger and bigger with distance).\\
+\\
+In any case, I believe that a cost function should exhibit the following functional structure:\\
+\begin{align}
+Cost=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}f(A_L[s,c_L]) \label{eq:cost}
+\end{align}
+
+Where the function f is at least once differentiable.
+
+
+\section{Optimization}
+
+Now that we have an objective function, we know that a good network is such that the cost/error function is small.\\
+To reduce the cost we can play on two aspects:\\
+\\
+* The network structure: number of hidden layers and their respective number of neurons\\
+* For a given structure, optimize the weights and biaises\\
+\\
+Clearly, the more complex the structure the lower the cost. However, assuming your goal is to predict using data not seen in the training set, then you might want to use a lighter structure (and possibly accept a higher cost on the training set) in order to avoid overfitting.\\
+There is no rigorous science to find the best structure. Only some heuristics and a good deal of trial and errors.\\
+\\
+So lets' focus on the second aspect.\\
+To find the weights and biaises that minimize the cost, one need to use some numeric method as the complex and iterative structure of networks don't allow for a closed form solution.\\
+One can use miscellaenous methods, like Gradient Descent, Conjugate Gradient methods, Quasi Newton  methods (BFGS,L-BFGS...)  etc.\\
+\\
+In any  case, we need the gradient of the cost function in respect of each weight Matrix and biais Vector.\\
+
+
+\section{Gradient}
+
+
+Let's define the following matrices:\\
+\begin{align}
+&D_{L}=f'(A_L).s'(Z_L) \label{eq:Dl} \\
+&D_{l-1}=D_{l}W_{l}.s'(Z_{l-1}) \text{ where $l \in [1;L]$} \label{eq:Dkz}
+\end{align} 
+
+The gradient of the $Cost$ function with respect to a weight matrix is then given by:\\
+
+\begin{align}
+\forall j \in [1;L] \quad \dfrac{\delta Cost}{\delta W_{j}}=\frac{1}{m}   D_{j}'  A_{j-1} \label{eq:grad}
+\end{align}
+
+The gradient of the $Cost$ function with respect to a biais vector is then given by:\\
+
+\begin{align}
+\forall j \in [1;L] \quad \dfrac{\delta Cost}{\delta W_{j}}=\frac{1}{m}   D_{j}'  1_{j} \label{eq:gradBiases}
+\end{align}
+
+Where $1_{j}$ is a vector of $m$  ones.
+
+\section{Gradient's Proof}
+
+Notations:\\
+\\
+* Upper case letter are for matrix and vector.\\
+* Sqare brakets $\left[ \right]$ are used for matrix indices: $A[s,j]$ is the element in $A$ at the $i^{th}$ row and $j^{th}$ column.\\
+* Curly braces $\lbrace \rbrace$ are also used to show that the result of whatever inside is a matrix.\\
+* Dot "." is for elementwise matrix multiplication.\\
+\\
+To prove $\eqref{eq:grad}$, let's first prove that we have $\forall j \in [1;L-1]$, $\forall l \in [j+1;L]$:\\
+
+\begin{align}
+\dfrac{\delta Cost}{\delta W_{j}[z,k]}&=\frac{1}{m}\sum_{s=1}^{m}\sum_{c_{l}=1}^{h_{l}}D_{l}[s,c_{l}] \sum_{c_{l-1}=1}^{h_{l-1}}W_{l}' [c_{l-1},c_{l}]\dfrac{\delta (A_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \label{eq:recGrad}
+\end{align}
+
+Let's check $\eqref{eq:recGrad}$  is true for $l=L$:\\
+
+\begin{align*}
+\dfrac{\delta Cost}{\delta W_{j}[z,k]}&=\dfrac{\delta (\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}f(A_L[s,c_L]))}{\delta W_{j}[z,k]} \text{, according to $Cost$ defined in $\eqref{eq:cost}$}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}\dfrac{\delta (f(A_L[s,c_L]))}{\delta W_{j}[z,k]} \text{, by linearity of the $\delta$ operator}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}f'(A_L[s,c_L])\dfrac{\delta (A_L[s,c_L])}{\delta W_{j}[z,k]} \text{, by chain rule}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}f'(A_L[s,c_L])\dfrac{\delta (s(Z_L[s,c_L]))}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdA}$}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}f'(A_L[s,c_L]) s'(Z_L[s,c_L])\dfrac{\delta (Z_L[s,c_L])}{\delta W_{j}[z,k]} \text{, by chain rule}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} \left\lbrace f'(A_L) .  s'(Z_L)\right\rbrace [s,c_L]\dfrac{\delta (Z_L[s,c_L])}{\delta W_{j}[z,k]} \text{ (elementwise multiplication)} \\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L]\dfrac{\delta (Z_L[s,c_L])}{\delta W_{j}[z,k]}  \text{, by $\eqref{eq:Dl}$}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L]\dfrac{\delta (\left\lbrace A_{L-1}W_{L}'\right\rbrace [s,c_L]+B_{L}[c_L] )}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdZ}$}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L]\dfrac{\delta (\left\lbrace A_{L-1}W_{L}'\right\rbrace [s,c_L] )}{\delta W_{j}[z,k]} \text{ as $B_L$ is not sensitive to the weights}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}  D_L [s,c_L]\dfrac{\delta (\sum_{c_{L-1}=1}^{h_{L-1}} A_{L-1}[s,c_{L-1}]W_{L}' [c_{L-1},c_L] )}{\delta W_{j}[z,k]} \text{ (matrix multiplication)}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L] \sum_{c_{L-1}=1}^{h_{L-1}}W_{L}' [c_{L-1},c_L] \dfrac{\delta ( A_{L-1}[s,c_{L-1}] )}{\delta W_{j}[z,k] } 
+\end{align*}
+
+The last expression is obtained by linearity of the $\delta$ operator and the fact that $W_L$ doesn't depend on weights in previous layers.\\
+\\
+Now let's assume $\eqref{eq:recGrad}$  is true down to $l$, where $l \in [min(L,j+2);L]$. \\
+Let's show that the equation also holds for $l-1$:\\
+
+\begin{align*}
+\dfrac{\delta Cost}{\delta W_{j}[z,k]}&=\frac{1}{m}\sum_{s=1}^{m}\sum_{c_{l}=1}^{h_{l}}D_{l}[s,c_{l}] \sum_{c_{l-1}=1}^{h_{l-1}}W_{l}' [c_{l-1},c_{l}]\dfrac{\delta (A_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:recGrad}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m}\sum_{c_{l}=1}^{h_{l}}D_{l}[s,c_{l}] \sum_{c_{l-1}=1}^{h_{l-1}}W_{l} [c_{l},c_{l-1}]\dfrac{\delta (A_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, by transposition of $W_l$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}}\sum_{c_{l}=1}^{h_{l}}D_{l}[s,c_{l}]W_{l} [c_{l},c_{l-1}]\dfrac{\delta (A_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, after rearranging the nested sums}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} \left\lbrace D_{l}W_{l}\right\rbrace  [s,c_{l-1}]\dfrac{\delta (A_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{ (matrix multiplication)}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} \left\lbrace D_{l}W_{l}\right\rbrace  [s,c_{l-1}]\dfrac{\delta (s(Z_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdA}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} \left\lbrace D_{l}W_{l}\right\rbrace  [s,c_{l-1}]s'(Z_{l-1}[s,c_{l-1}])\dfrac{\delta (Z_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, by chain rule}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} \left\lbrace  \left\lbrace D_{l}W_{l}\right\rbrace . s'(Z_{l-1}) \right\rbrace [s,c_{l-1}]\dfrac{\delta (Z_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{ (elementwise multiplication)}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta (Z_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{ by $\eqref{eq:Dkz}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta (\left\lbrace A_{l-2}W_{l-1}' \right\rbrace [s,c_{l-1}] +B_{l}[c_{l-1}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdZ}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta (\left\lbrace A_{l-2}W_{l-1}' \right\rbrace [s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, biaises being insensitive} \\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta(\sum_{c_{l-2}=1}^{h_{l-2}} A_{l-2}[s,c_{l-2}] W_{l-1}' [c_{l-2},c_{l-1}] )}{\delta W_{j}[z,k]}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\sum_{c_{l-2}=1}^{h_{l-2}}W_{l-1}' [c_{l-2},c_{l-1}] \dfrac{\delta  (A_{l-2}[s,c_{l-2}]  )}{\delta W_{j}[z,k]}\\
+\end{align*}
+
+Which concludes the proof for  $\eqref{eq:recGrad}$.\\
+
+Let's examine $\eqref{eq:recGrad}$ for $l=j+1$:\\
+
+\begin{align*}
+\dfrac{\delta Cost}{\delta W_{j}[z,k]}&=\frac{1}{m}\sum_{s=1}^{m}\sum_{c_{j+1}=1}^{h_{j+1}}D_{j+1}[s,c_{j+1}] \sum_{c_{j}=1}^{h_{j}}W_{j+1}' [c_{j},c_{j+1}]\dfrac{\delta (A_{j}[s,c_{j}])}{\delta W_{j}[z,k]}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}}\sum_{c_{j+1}=1}^{h_{j+1}}D_{j+1}[s,c_{j+1}]W_{j+1} [c_{j+1},c_{j}]\dfrac{\delta (s(Z_{j}[s,c_{j}]))}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdA}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} \left\lbrace D_{j+1}W_{j+1}'  \right\rbrace [s,c_{j}] s'(Z_{j}[s,c_{j}])\dfrac{\delta (Z_{j}[s,c_{j}])}{\delta W_{j}[z,k]} \text{, by chain rule}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\dfrac{\delta ( \left\lbrace A_{j-1}W_{j}' \right\rbrace [s,c_{j}] + B_{j-1}[c_{j}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:Dkz}$ and $\eqref{eq:fwdZ}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\dfrac{\delta ( \left\lbrace A_{j-1}W_{j}' \right\rbrace [s,c_{j}] )}{\delta W_{j}[z,k]} \text{, biaises being insensitive}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\dfrac{\delta (\sum_{c_{j-1}=1}^{h_{j-1}} A_{j-1}[s,c_{j-1}]W_{j}'  [c_{j-1},c_{j}] )}{\delta W_{j}[z,k]}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\sum_{c_{j-1}=1}^{h_{j-1}} A_{j-1}[s,c_{j-1}] \dfrac{\delta ( W_{j}  [c_{j},c_{j-1}] )}{\delta W_{j}[z,k]}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=z}^{z} D_{j} [s,c_{j}]\sum_{c_{j-1}=k}^{k} A_{j-1}[s,c_{j-1}] \dfrac{\delta ( W_{j}  [c_{j},c_{j-1}] )}{\delta W_{j}[z,k]}\\
+&=\frac{1}{m}\sum_{s=1}^{m}  D_{j} [s,z] A_{j-1}[s,k]\\
+&=\frac{1}{m}\sum_{s=1}^{m}  D_{j}' [z,i] A_{j-1}[s,k]\\
+&=\frac{1}{m} \left\lbrace D_{j}'  A_{j-1}\right\rbrace [z,k]\\
+\end{align*}
+
+And the last equation finish proving  that $\dfrac{\delta Cost}{\delta W_{j}}=\frac{1}{m}   D_{j}'  A_{j-1}$, i.e. $\eqref{eq:grad}$.\\
+\\
+For the biaises, the proof is similar.\\
+
+\end{document}
