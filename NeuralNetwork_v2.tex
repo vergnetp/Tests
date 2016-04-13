@@ -37,7 +37,7 @@ We would achieve it by defining the following:\\
 For $l \in [1;L]$:\\
 \\
 \begin{align*}
-Z_l=&Z_{l-1}W_{l}'+B_{l}
+Z_l=&Z_{l-1}W_{l}'+B_{l}'
 \end{align*}
 \\
 Where:\\
@@ -57,10 +57,10 @@ After all, those layers are all learning in a similar way, linearly.\\
 If Newton were to learn from Newton's discoveries, he would certainly achieve great things, but somehow be limited. Discoveries would be far greater if a different mind -like Einstein's- would come into play.\\
 \\
 So, in the light of this, we want to add more value in the training of each layer, and especially break the boring linearity.\\
-That's why we will multiply the results of each layer by some non linear function $s$ such as for $l \in [1;L]$:\\
+That's why we will apply to the results of each layer some non linear function $s$ such as for $l \in [1;L]$:\\
 
 \begin{align}
-Z_l=&A_{l-1}W_{l}'+B_{l} \label{eq:fwdZ} \\ 
+Z_l=&A_{l-1}W_{l}'+B_{l}' \label{eq:fwdZ} \\ 
 A_l=&s(Z_{l}) \label{eq:fwdA}
 \end{align}
 \\
@@ -80,7 +80,7 @@ The most often used are the Sigmoid (a.k.a Logistic) function ($\dfrac{1}{1+\exp
 They are great because they have a linear part (around zero) and nonlinear parts (when the input is either rather positively or negatively big).\\
 Because they are bounded ($[0;1$ for the Sigmoid, $[-1;1]$ for the $tanh$), they work well with classification problems.\\
 \\
-On can use different transfer functions for different layers and really $\eqref{eq:fwdA}$ should be $A_l=s_l(Z_{l})$.\\
+One can use different transfer functions for different layers and really $\eqref{eq:fwdA}$ should be $A_l=s_l(Z_{l})$.\\
 This enable to leverage on different ways of learning (combining different minds).\\
 In this paper we omit the indexing of $s$ for notation simplicity.\\
 \\
@@ -192,7 +192,7 @@ Let's check $\eqref{eq:recGrad}$  is true for $l=L$:\\
 &=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}f'(A_L[s,c_L]) s'(Z_L[s,c_L])\dfrac{\delta (Z_L[s,c_L])}{\delta W_{j}[z,k]} \text{, by chain rule}\\
 &=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} \left\lbrace f'(A_L) .  s'(Z_L)\right\rbrace [s,c_L]\dfrac{\delta (Z_L[s,c_L])}{\delta W_{j}[z,k]} \text{ (elementwise multiplication)} \\
 &=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L]\dfrac{\delta (Z_L[s,c_L])}{\delta W_{j}[z,k]}  \text{, by $\eqref{eq:Dl}$}\\
-&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L]\dfrac{\delta (\left\lbrace A_{L-1}W_{L}'\right\rbrace [s,c_L]+B_{L}[c_L] )}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdZ}$}\\
+&=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L]\dfrac{\delta (\left\lbrace A_{L-1}W_{L}'\right\rbrace [s,c_L]+B_{L}'[c_L] )}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdZ}$}\\
 &=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L]\dfrac{\delta (\left\lbrace A_{L-1}W_{L}'\right\rbrace [s,c_L] )}{\delta W_{j}[z,k]} \text{ as $B_L$ is not sensitive to the weights}\\
 &=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L}  D_L [s,c_L]\dfrac{\delta (\sum_{c_{L-1}=1}^{h_{L-1}} A_{L-1}[s,c_{L-1}]W_{L}' [c_{L-1},c_L] )}{\delta W_{j}[z,k]} \text{ (matrix multiplication)}\\
 &=\dfrac{1}{m}\sum_{s=1}^{m}\sum_{c_L=1}^{h_L} D_L [s,c_L] \sum_{c_{L-1}=1}^{h_{L-1}}W_{L}' [c_{L-1},c_L] \dfrac{\delta ( A_{L-1}[s,c_{L-1}] )}{\delta W_{j}[z,k] } 
@@ -212,7 +212,7 @@ Let's show that the equation also holds for $l-1$:\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} \left\lbrace D_{l}W_{l}\right\rbrace  [s,c_{l-1}]s'(Z_{l-1}[s,c_{l-1}])\dfrac{\delta (Z_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, by chain rule}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} \left\lbrace  \left\lbrace D_{l}W_{l}\right\rbrace . s'(Z_{l-1}) \right\rbrace [s,c_{l-1}]\dfrac{\delta (Z_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{ (elementwise multiplication)}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta (Z_{l-1}[s,c_{l-1}])}{\delta W_{j}[z,k]} \text{ by $\eqref{eq:Dkz}$}\\
-&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta (\left\lbrace A_{l-2}W_{l-1}' \right\rbrace [s,c_{l-1}] +B_{l}[c_{l-1}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdZ}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta (\left\lbrace A_{l-2}W_{l-1}' \right\rbrace [s,c_{l-1}] +B_{l-1}'[c_{l-1}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdZ}$}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta (\left\lbrace A_{l-2}W_{l-1}' \right\rbrace [s,c_{l-1}])}{\delta W_{j}[z,k]} \text{, biaises being insensitive} \\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\dfrac{\delta(\sum_{c_{l-2}=1}^{h_{l-2}} A_{l-2}[s,c_{l-2}] W_{l-1}' [c_{l-2},c_{l-1}] )}{\delta W_{j}[z,k]}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{l-1}=1}^{h_{l-1}} D_{l-1} [s,c_{l-1}]\sum_{c_{l-2}=1}^{h_{l-2}}W_{l-1}' [c_{l-2},c_{l-1}] \dfrac{\delta  (A_{l-2}[s,c_{l-2}]  )}{\delta W_{j}[z,k]}\\
@@ -223,16 +223,16 @@ Which concludes the proof for  $\eqref{eq:recGrad}$.\\
 Let's examine $\eqref{eq:recGrad}$ for $l=j+1$:\\
 
 \begin{align*}
-\dfrac{\delta Cost}{\delta W_{j}[z,k]}&=\frac{1}{m}\sum_{s=1}^{m}\sum_{c_{j+1}=1}^{h_{j+1}}D_{j+1}[s,c_{j+1}] \sum_{c_{j}=1}^{h_{j}}W_{j+1}' [c_{j},c_{j+1}]\dfrac{\delta (A_{j}[s,c_{j}])}{\delta W_{j}[z,k]}\\
+\dfrac{\delta Cost}{\delta W_{j}[z,k]}&=\frac{1}{m}\sum_{s=1}^{m}\sum_{c_{j+1}=1}^{h_{j+1}}D_{j+1}[s,c_{j+1}] \sum_{c_{j}=1}^{h_{j}}W_{j+1}' [c_{j},c_{j+1}]\dfrac{\delta (A_{j}[s,c_{j}])}{\delta W_{j}[z,k]} \text{, by \eqref{eq:recGrad}}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}}\sum_{c_{j+1}=1}^{h_{j+1}}D_{j+1}[s,c_{j+1}]W_{j+1} [c_{j+1},c_{j}]\dfrac{\delta (s(Z_{j}[s,c_{j}]))}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:fwdA}$}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} \left\lbrace D_{j+1}W_{j+1}'  \right\rbrace [s,c_{j}] s'(Z_{j}[s,c_{j}])\dfrac{\delta (Z_{j}[s,c_{j}])}{\delta W_{j}[z,k]} \text{, by chain rule}\\
-&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\dfrac{\delta ( \left\lbrace A_{j-1}W_{j}' \right\rbrace [s,c_{j}] + B_{j-1}[c_{j}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:Dkz}$ and $\eqref{eq:fwdZ}$}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\dfrac{\delta ( \left\lbrace A_{j-1}W_{j}' \right\rbrace [s,c_{j}] + B_{j}'[c_{j}])}{\delta W_{j}[z,k]} \text{, by $\eqref{eq:Dkz}$ and $\eqref{eq:fwdZ}$}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\dfrac{\delta ( \left\lbrace A_{j-1}W_{j}' \right\rbrace [s,c_{j}] )}{\delta W_{j}[z,k]} \text{, biaises being insensitive}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\dfrac{\delta (\sum_{c_{j-1}=1}^{h_{j-1}} A_{j-1}[s,c_{j-1}]W_{j}'  [c_{j-1},c_{j}] )}{\delta W_{j}[z,k]}\\
-&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\sum_{c_{j-1}=1}^{h_{j-1}} A_{j-1}[s,c_{j-1}] \dfrac{\delta ( W_{j}  [c_{j},c_{j-1}] )}{\delta W_{j}[z,k]}\\
+&=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=1}^{h_{j}} D_{j} [s,c_{j}]\sum_{c_{j-1}=1}^{h_{j-1}} A_{j-1}[s,c_{j-1}] \dfrac{\delta ( W_{j}  [c_{j},c_{j-1}] )}{\delta W_{j}[z,k]} \text{, as $A_{j-1}$ is independent from $W_j$}\\
 &=\frac{1}{m}\sum_{s=1}^{m} \sum_{c_{j}=z}^{z} D_{j} [s,c_{j}]\sum_{c_{j-1}=k}^{k} A_{j-1}[s,c_{j-1}] \dfrac{\delta ( W_{j}  [c_{j},c_{j-1}] )}{\delta W_{j}[z,k]}\\
 &=\frac{1}{m}\sum_{s=1}^{m}  D_{j} [s,z] A_{j-1}[s,k]\\
-&=\frac{1}{m}\sum_{s=1}^{m}  D_{j}' [z,i] A_{j-1}[s,k]\\
+&=\frac{1}{m}\sum_{s=1}^{m}  D_{j}' [z,s] A_{j-1}[s,k]\\
 &=\frac{1}{m} \left\lbrace D_{j}'  A_{j-1}\right\rbrace [z,k]\\
 \end{align*}
 
